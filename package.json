@@ -1,0 +1,116 @@
+{
+  "publisher": "tateishi",
+  "name": "folder-bookmarks",
+  "displayName": "Folder Bookmarks",
+  "description": "任意のフォルダをブックマーク登録してサイドバーからファイルツリーで素早くアクセスできるミニExplorer",
+  "version": "0.5.0",
+  "engines": { "vscode": "^1.85.0" },
+  "categories": ["Other"],
+  "activationEvents": [],
+  "main": "./out/extension.js",
+  "contributes": {
+    "viewsContainers": {
+      "activitybar": [
+        {
+          "id": "folder-bookmarks",
+          "title": "Folder Bookmarks",
+          "icon": "images/icon.svg"
+        }
+      ]
+    },
+    "views": {
+      "folder-bookmarks": [
+        {
+          "id": "folderBookmarksView",
+          "name": "ブックマーク"
+        }
+      ]
+    },
+    "commands": [
+      {
+        "command": "folder-bookmarks.add",
+        "title": "フォルダを追加",
+        "icon": "$(add)"
+      },
+      {
+        "command": "folder-bookmarks.remove",
+        "title": "ブックマークから削除",
+        "icon": "$(remove)"
+      },
+      {
+        "command": "folder-bookmarks.changeColor",
+        "title": "色を変更"
+      },
+      {
+        "command": "folder-bookmarks.refresh",
+        "title": "更新",
+        "icon": "$(refresh)"
+      },
+      {
+        "command": "folder-bookmarks.revealInFinder",
+        "title": "Finderで表示"
+      }
+    ],
+    "menus": {
+      "view/title": [
+        {
+          "command": "folder-bookmarks.add",
+          "when": "view == folderBookmarksView",
+          "group": "navigation@1"
+        },
+        {
+          "command": "folder-bookmarks.remove",
+          "when": "view == folderBookmarksView",
+          "group": "navigation@2"
+        },
+        {
+          "command": "folder-bookmarks.refresh",
+          "when": "view == folderBookmarksView",
+          "group": "navigation@3"
+        }
+      ],
+      "view/item/context": [
+        {
+          "command": "folder-bookmarks.add",
+          "when": "view == folderBookmarksView",
+          "group": "1_manage@1"
+        },
+        {
+          "command": "folder-bookmarks.remove",
+          "when": "view == folderBookmarksView && viewItem == bookmark",
+          "group": "1_manage@2"
+        },
+        {
+          "command": "folder-bookmarks.changeColor",
+          "when": "view == folderBookmarksView && viewItem == bookmark",
+          "group": "1_manage@3"
+        },
+        {
+          "command": "folder-bookmarks.revealInFinder",
+          "when": "view == folderBookmarksView && (viewItem == bookmark || viewItem == folder || viewItem == file)",
+          "group": "2_reveal@1"
+        }
+      ]
+    },
+    "configuration": {
+      "title": "Folder Bookmarks",
+      "properties": {
+        "folderBookmarks.bookmarks": {
+          "type": "array",
+          "default": [],
+          "description": "ブックマーク済みフォルダの一覧（path と color を持つオブジェクト配列）"
+        }
+      }
+    }
+  },
+  "scripts": {
+    "vscode:prepublish": "npm run compile",
+    "compile": "tsc -p ./",
+    "watch": "tsc -watch -p ./"
+  },
+  "devDependencies": {
+    "@types/node": "^20.0.0",
+    "@types/vscode": "^1.85.0",
+    "typescript": "^5.3.0"
+  }
+}
