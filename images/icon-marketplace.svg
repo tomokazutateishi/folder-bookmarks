@@ -1,0 +1,14 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 128 128" width="128" height="128">
+  <!-- 背景 -->
+  <rect width="128" height="128" rx="20" fill="#1e1e2e"/>
+
+  <!-- フォルダ本体 -->
+  <path d="M20 52 Q20 44 28 44 L52 44 L58 36 L100 36 Q108 36 108 44 L108 88 Q108 96 100 96 L28 96 Q20 96 20 88 Z" fill="#eab308"/>
+
+  <!-- フォルダタブ部分（上部の丸み） -->
+  <path d="M28 44 L52 44 L58 36 L28 36 Q20 36 20 44 Z" fill="#ca8a04"/>
+
+  <!-- ブックマークピン -->
+  <circle cx="94" cy="88" r="14" fill="#1e1e2e"/>
+  <path d="M88 82 L100 82 L100 96 L94 91 L88 96 Z" fill="#eab308"/>
+</svg>

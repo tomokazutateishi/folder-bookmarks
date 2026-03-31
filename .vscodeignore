@@ -5,3 +5,4 @@ tsconfig.json
 **/*.map
 **/*.vsix
 node_modules/**
+images/icon-marketplace.svg

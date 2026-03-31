@@ -3,9 +3,18 @@
   "name": "folder-bookmarks",
   "displayName": "Folder Bookmarks",
   "description": "任意のフォルダをブックマーク登録してサイドバーからファイルツリーで素早くアクセスできるミニExplorer",
-  "version": "0.5.0",
-  "engines": { "vscode": "^1.85.0" },
-  "categories": ["Other"],
+  "version": "0.6.1",
+  "engines": {
+    "vscode": "^1.85.0"
+  },
+  "categories": [
+    "Other"
+  ],
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/tomokazutateishi/folder-bookmarks.git"
+  },
+  "icon": "images/icon.png",
   "activationEvents": [],
   "main": "./out/extension.js",
   "contributes": {
@@ -111,6 +120,7 @@
   "devDependencies": {
     "@types/node": "^20.0.0",
     "@types/vscode": "^1.85.0",
+    "sharp": "^0.34.5",
     "typescript": "^5.3.0"
   }
 }
