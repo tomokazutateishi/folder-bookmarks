@@ -39,7 +39,12 @@
       {
         "command": "folder-bookmarks.add",
         "title": "フォルダを追加",
-        "icon": "$(add)"
+        "icon": "$(new-folder)"
+      },
+      {
+        "command": "folder-bookmarks.addFile",
+        "title": "ファイルを追加",
+        "icon": "$(new-file)"
       },
       {
         "command": "folder-bookmarks.remove",
@@ -61,6 +66,12 @@
       }
     ],
     "menus": {
+      "explorer/context": [
+        {
+          "command": "folder-bookmarks.add",
+          "group": "navigation"
+        }
+      ],
       "view/title": [
         {
           "command": "folder-bookmarks.add",
@@ -68,14 +79,19 @@
           "group": "navigation@1"
         },
         {
-          "command": "folder-bookmarks.remove",
+          "command": "folder-bookmarks.addFile",
           "when": "view == folderBookmarksView",
           "group": "navigation@2"
         },
         {
-          "command": "folder-bookmarks.refresh",
+          "command": "folder-bookmarks.remove",
           "when": "view == folderBookmarksView",
           "group": "navigation@3"
+        },
+        {
+          "command": "folder-bookmarks.refresh",
+          "when": "view == folderBookmarksView",
+          "group": "navigation@4"
         }
       ],
       "view/item/context": [
@@ -86,7 +102,7 @@
         },
         {
           "command": "folder-bookmarks.remove",
-          "when": "view == folderBookmarksView && viewItem == bookmark",
+          "when": "view == folderBookmarksView && (viewItem == bookmark || viewItem == file)",
           "group": "1_manage@2"
         },
         {

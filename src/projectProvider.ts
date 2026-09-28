@@ -110,6 +110,18 @@ export class FolderBookmarkProvider implements vscode.TreeDataProvider<FsItem> {
     return bookmarks
       .filter(b => fs.existsSync(b.path))
       .map(b => {
+        const isFile = fs.statSync(b.path).isFile();
+        if (isFile) {
+          // 単体ファイルの場合：展開不可（None）で作成
+          return new FsItem(
+            path.basename(b.path),
+            b.path,
+            'file',
+            vscode.TreeItemCollapsibleState.None
+          );
+        }
+
+        // 従来通りのフォルダの場合
         const icon = ensureColorIcon(this.storagePath, b.color ?? DEFAULT_COLOR);
         return new FsItem(
           path.basename(b.path),
@@ -136,5 +148,93 @@ export class FolderBookmarkProvider implements vscode.TreeDataProvider<FsItem> {
       .map(d => new FsItem(d.name, path.join(dirPath, d.name), 'file', vscode.TreeItemCollapsibleState.None));
 
     return [...dirs, ...files];
+  }
+}
+
+
+export class BookmarkDragAndDropController implements vscode.TreeDragAndDropController<FsItem> {
+  // ① 受け入れるMIMEタイプに 'text/uri-list'（タブや外部ファイルのドラッグ）を追加
+  dropMimeTypes = [
+    'application/vnd.code.tree.folderBookmarksView',
+    'text/uri-list'
+  ];
+  dragMimeTypes = ['application/vnd.code.tree.folderBookmarksView'];
+
+  constructor(private readonly provider: FolderBookmarkProvider) {}
+
+  handleDrag(source: readonly FsItem[], treeDataTransfer: vscode.DataTransfer): void {
+    if (source.length > 0) {
+      treeDataTransfer.set(
+        'application/vnd.code.tree.folderBookmarksView',
+        new vscode.DataTransferItem(source[0])
+      );
+    }
+  }
+
+  async handleDrop(target: FsItem | undefined, sources: vscode.DataTransfer): Promise<void> {
+    const config = vscode.workspace.getConfiguration('folderBookmarks');
+    let bookmarks: BookmarkEntry[] = config.get('bookmarks') ?? [];
+
+    // -------------------------------------------------------------
+    // パターン1：ツリー内部での並び替えドロップの場合（最優先で判定）
+    // -------------------------------------------------------------
+    const transferItem = sources.get('application/vnd.code.tree.folderBookmarksView');
+    if (transferItem) {
+      const sourceItem = transferItem.value as FsItem;
+      if (sourceItem && (sourceItem.itemType === 'bookmark' || sourceItem.itemType === 'file')) {
+        const sourceIndex = bookmarks.findIndex(b => b.path === sourceItem.fsPath);
+        if (sourceIndex !== -1) {
+          const [movedItem] = bookmarks.splice(sourceIndex, 1);
+
+          if (target && (target.itemType === 'bookmark' || target.itemType === 'file')) {
+            const targetIndex = bookmarks.findIndex(b => b.path === target.fsPath);
+            if (targetIndex !== -1) {
+              bookmarks.splice(targetIndex, 0, movedItem);
+            } else {
+              bookmarks.push(movedItem);
+            }
+          } else {
+            bookmarks.push(movedItem);
+          }
+
+          await config.update('bookmarks', bookmarks, vscode.ConfigurationTarget.Global);
+          this.provider.refresh();
+          return; // ← 並び替えが完了したらここで終了
+        }
+      }
+    }
+
+    // -------------------------------------------------------------
+    // パターン2：エディタのタブや外部からのドロップ（新規追加）
+    // -------------------------------------------------------------
+    const uriListItem = sources.get('text/uri-list');
+    if (uriListItem) {
+      const uriListString = await uriListItem.asString();
+      const uris = uriListString
+        .split('\n')
+        .map(line => line.trim())
+        .filter(line => line.length > 0 && !line.startsWith('#'));
+
+      let added = false;
+      for (const uriStr of uris) {
+        try {
+          const uri = vscode.Uri.parse(uriStr);
+          const filePath = uri.fsPath;
+          if (filePath && fs.existsSync(filePath)) {
+            if (!bookmarks.some(b => b.path === filePath)) {
+              bookmarks.push({ path: filePath, color: '#eab308' });
+              added = true;
+            }
+          }
+        } catch (e) {
+          console.error('Failed to parse dropped URI:', e);
+        }
+      }
+
+      if (added) {
+        await config.update('bookmarks', bookmarks, vscode.ConfigurationTarget.Global);
+        this.provider.refresh();
+      }
+    }
   }
 }

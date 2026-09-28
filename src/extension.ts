@@ -1,5 +1,6 @@
 import * as vscode from 'vscode';
-import { FolderBookmarkProvider, FsItem, BookmarkEntry, pickColor } from './projectProvider';
+import * as path from 'path'; // ← 先頭付近になければ追加
+import { FolderBookmarkProvider, BookmarkDragAndDropController,FsItem, BookmarkEntry, pickColor } from './projectProvider';
 
 export function activate(context: vscode.ExtensionContext) {
   const provider = new FolderBookmarkProvider(context.globalStorageUri.fsPath);
@@ -7,31 +8,56 @@ export function activate(context: vscode.ExtensionContext) {
   const treeView = vscode.window.createTreeView('folderBookmarksView', {
     treeDataProvider: provider,
     showCollapseAll: true,
+    dragAndDropController: new BookmarkDragAndDropController(provider), // ← この1行を追加！
   });
 
-  // フォルダを追加（タイトルバーボタン or 右クリック）
+  // 共通の登録ロジック
+  const registerBookmark = async (targetPath: string) => {
+    const config = vscode.workspace.getConfiguration('folderBookmarks');
+    const bookmarks: BookmarkEntry[] = config.get('bookmarks') ?? [];
+    if (bookmarks.some(b => b.path === targetPath)) return;
+
+    await config.update(
+      'bookmarks',
+      [...bookmarks, { path: targetPath, color: '#eab308' }],
+      vscode.ConfigurationTarget.Global
+    );
+    provider.refresh();
+  };
+
+  // 1. フォルダを追加（アイコン：新規フォルダ）
   const addBookmark = vscode.commands.registerCommand(
     'folder-bookmarks.add',
-    async () => {
+    async (uri?: vscode.Uri) => {
+      if (uri?.fsPath) {
+        await registerBookmark(uri.fsPath);
+        return;
+      }
       const uris = await vscode.window.showOpenDialog({
         canSelectFolders: true,
         canSelectFiles: false,
         canSelectMany: false,
-        openLabel: 'ブックマークに追加',
+        openLabel: 'フォルダをブックマーク',
       });
-      const folderPath = uris?.[0]?.fsPath;
-      if (!folderPath) return;
+      if (uris?.[0]?.fsPath) {
+        await registerBookmark(uris[0].fsPath);
+      }
+    }
+  );
 
-      const config = vscode.workspace.getConfiguration('folderBookmarks');
-      const bookmarks: BookmarkEntry[] = config.get('bookmarks') ?? [];
-      if (bookmarks.some(b => b.path === folderPath)) return;
-
-      await config.update(
-        'bookmarks',
-        [...bookmarks, { path: folderPath, color: '#eab308' }],
-        vscode.ConfigurationTarget.Global
-      );
-      provider.refresh();
+  // 2. ファイルを追加（アイコン：新規ファイル）
+  const addFileBookmark = vscode.commands.registerCommand(
+    'folder-bookmarks.addFile',
+    async () => {
+      const uris = await vscode.window.showOpenDialog({
+        canSelectFolders: false,
+        canSelectFiles: true,
+        canSelectMany: false,
+        openLabel: 'ファイルをブックマーク',
+      });
+      if (uris?.[0]?.fsPath) {
+        await registerBookmark(uris[0].fsPath);
+      }
     }
   );
 
@@ -40,12 +66,30 @@ export function activate(context: vscode.ExtensionContext) {
     'folder-bookmarks.remove',
     async (item?: FsItem) => {
       const target = item ?? treeView.selection[0];
-      if (!target?.fsPath || target.itemType !== 'bookmark') return;
+      if (!target?.fsPath) return;
+
       const config = vscode.workspace.getConfiguration('folderBookmarks');
       const bookmarks: BookmarkEntry[] = config.get('bookmarks') ?? [];
+
+      const targetNormalized = path.resolve(target.fsPath);
+
+      // 完全一致、または選択中の要素がそのブックマーク配下にある場合にヒットさせる
+      const indexToRemove = bookmarks.findIndex(b => {
+        const bNormalized = path.resolve(b.path);
+        return (
+          bNormalized === targetNormalized ||
+          targetNormalized.startsWith(bNormalized + path.sep)
+        );
+      });
+
+      if (indexToRemove === -1) return;
+
+      // 対象のブックマークを削除
+      bookmarks.splice(indexToRemove, 1);
+
       await config.update(
         'bookmarks',
-        bookmarks.filter(b => b.path !== target.fsPath),
+        bookmarks,
         vscode.ConfigurationTarget.Global
       );
       provider.refresh();
@@ -99,7 +143,8 @@ export function activate(context: vscode.ExtensionContext) {
     changeColor,
     refresh,
     revealInFinder,
-    configWatcher
+    configWatcher,
+    addFileBookmark
   );
 }
 
